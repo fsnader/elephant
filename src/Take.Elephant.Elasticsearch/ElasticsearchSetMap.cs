@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nest;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -22,35 +23,42 @@ namespace Take.Elephant.Elasticsearch
             throw new NotImplementedException();
         }
 
-        public async Task<ISet<T>> GetValueOrDefaultAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken))
-        {
+        public async Task<ISet<T>> GetValueOrDefaultAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken)) =>
+            new SubKeySet<T>(ElasticClient, KeyProperty, key.ToString(), SubKeyProperty);
 
-            throw new NotImplementedException();
-        }
-
-        public Task<ISet<T>> GetValueOrEmptyAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            throw new NotImplementedException();
-        }
+        public async Task<ISet<T>> GetValueOrEmptyAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken)) =>
+            new SubKeySet<T>(ElasticClient, KeyProperty, key.ToString(), SubKeyProperty);
 
         public async Task<bool> TryAddAsync(TKey key, ISet<T> value, bool overwrite = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             var items = await value.AsEnumerableAsync(cancellationToken).ConfigureAwait(false);
-
-            var success = false;
-
+            var documents = new Dictionary<string, T>();
             await items.ForEachAsync(
                             async item =>
                             {
-                                success = await TryAddAsync($"{key}:{GetSubKeyValue(item)}", item, overwrite, cancellationToken);
+                                documents.Add($"{key}:{GetSubKeyValue(item)}", item);
                             },
                             cancellationToken);
 
-            return success;
+            var descriptor = new BulkDescriptor();
+
+            foreach (var document in documents)
+            {
+                descriptor.Index<T>(op => op
+                    .Id(document.Key)
+                    .Document(document.Value));
+            }
+
+            var result = await ElasticClient.BulkAsync(descriptor, cancellationToken);
+
+            return result.IsValid;
         }
 
         public Task<bool> TryRemoveAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken))
         {
+
+
+
             throw new NotImplementedException();
         }
 

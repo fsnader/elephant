@@ -22,6 +22,11 @@ namespace Take.Elephant.Elasticsearch
             ElasticClient = new ElasticClient(settings);
         }
 
+        public StorageBase(ElasticClient elasticClient)
+        {
+            ElasticClient = elasticClient;
+        }
+
         public async Task<QueryResult<T>> QueryAsync<TResult>(Expression<Func<T, bool>> where, Expression<Func<T, TResult>> select, int skip, int take, CancellationToken cancellationToken)
         {
             var queryDescriptor = where.ParseToQueryContainer<T>();

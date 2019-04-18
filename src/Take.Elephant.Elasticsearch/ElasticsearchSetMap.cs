@@ -1,0 +1,61 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Take.Elephant.Elasticsearch
+{
+    public class ElasticsearchSetMap<TKey, T> : StorageBase<T>, ISetMap<TKey, T> where T : class
+    {
+        private readonly string KeyProperty;
+        private readonly string SubKeyProperty;
+
+        public ElasticsearchSetMap(string key, string subkey, string host, string username, string password, string defaultIndex) : base(host, username, password, defaultIndex)
+        {
+            KeyProperty = key;
+            SubKeyProperty = subkey;
+        }
+
+        public Task<bool> ContainsKeyAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<ISet<T>> GetValueOrDefaultAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken))
+        {
+
+            throw new NotImplementedException();
+        }
+
+        public Task<ISet<T>> GetValueOrEmptyAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<bool> TryAddAsync(TKey key, ISet<T> value, bool overwrite = false, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var items = await value.AsEnumerableAsync(cancellationToken).ConfigureAwait(false);
+
+            var success = false;
+
+            await items.ForEachAsync(
+                            async item =>
+                            {
+                                success = await TryAddAsync($"{key}:{GetSubKeyValue(item)}", item, overwrite, cancellationToken);
+                            },
+                            cancellationToken);
+
+            return success;
+        }
+
+        public Task<bool> TryRemoveAsync(TKey key, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            throw new NotImplementedException();
+        }
+
+        private string GetKeyValue(T entity) => GetPropertyValue(entity, KeyProperty);
+
+        private string GetSubKeyValue(T entity) => GetPropertyValue(entity, SubKeyProperty);
+    }
+}
